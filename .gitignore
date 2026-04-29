@@ -34,3 +34,6 @@ static/js/pdf.min.mjs
 static/js/pdf.worker.min.mjs
 static/js/marked.umd.js
 static/icons
+
+# Local Claude Code settings (personal, not for upstream)
+.claude/settings.local.json
