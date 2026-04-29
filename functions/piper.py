@@ -1,11 +1,11 @@
 import subprocess
 from functions.audio import normalize_audio
-from config import DEVICE
+from config import DEVICE, binary_path
 
 def piper_process_audio(voice, lang, text, output):
-    
+
     command = [
-        "piper",
+        binary_path("piper"),
         "--model", voice,
         "--output_file", output
     ]

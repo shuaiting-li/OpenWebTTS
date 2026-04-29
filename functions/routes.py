@@ -1,4 +1,5 @@
 import os
+import sys
 import hashlib
 import shutil
 import tempfile
@@ -20,7 +21,11 @@ from pydantic import BaseModel, Field
 from langdetect import detect
 
 # Import shared objects from app.py
-from config import templates, AUDIO_DIR, AUDIO_CACHE_DIR, COQUI_DIR, PIPER_DIR, KOKORO_DIR, USERS_DIR, DEVICE
+from config import templates, AUDIO_DIR, AUDIO_CACHE_DIR, COQUI_DIR, PIPER_DIR, KOKORO_DIR, USERS_DIR, DEVICE, RESOURCE_DIR
+
+# When frozen, poppler binaries (pdftoppm, pdfinfo) live next to other bundled
+# binaries in <RESOURCE_DIR>/bin. pdf2image accepts None to fall back to PATH.
+_POPPLER_PATH = os.path.join(RESOURCE_DIR, "bin") if getattr(sys, "frozen", False) else None
 
 # Import other function modules
 from functions.users import UserManager
@@ -287,11 +292,11 @@ def _generate_audio_file(request: SynthesizeRequest, output_path: str):
 async def read_root(request: Request):
     os.makedirs(AUDIO_DIR, exist_ok=True)
     os.makedirs(AUDIO_CACHE_DIR, exist_ok=True)
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html")
 
 @router.get("/config", response_class=HTMLResponse)
 async def read_config(request: Request):
-    return templates.TemplateResponse("config.html", {"request": request})
+    return templates.TemplateResponse(request, "config.html")
 
 # -----------------------
 # ---  API Endpoints  ---
@@ -405,7 +410,7 @@ os.makedirs(OCR_CACHE_DIR, exist_ok=True)
 def _perform_ocr(pdf_bytes: bytes, task_id: str):
     """Background task to perform OCR and save the result."""
     try:
-        images = convert_from_bytes(pdf_bytes)
+        images = convert_from_bytes(pdf_bytes, poppler_path=_POPPLER_PATH)
         ocr_text = ""
         for image in images:
             ocr_text += pytesseract.image_to_string(image)

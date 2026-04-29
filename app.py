@@ -8,13 +8,24 @@ import socket
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-# Import config and router
+# Import config first — it sets HF_HOME / TTS_HOME env vars and creates
+# writable directories before any TTS module is imported.
 import config
 from functions.routes import router
 from functions.openai_api import openai_api_router
 
+# Point pytesseract at the resolved tesseract binary (bundled or system).
+try:
+    import pytesseract
+    pytesseract.pytesseract.tesseract_cmd = config.binary_path("tesseract")
+except Exception:
+    pass
+
 # --- FastAPI Setup ---
 app = FastAPI()
+# Mount the writable audio_cache dir BEFORE the read-only static dir so the
+# more specific path wins. The frontend still requests /static/audio_cache/...
+app.mount("/static/audio_cache", StaticFiles(directory=config.AUDIO_CACHE_DIR), name="audio_cache")
 app.mount("/static", StaticFiles(directory=config.STATIC_DIR), name="static")
 
 app.include_router(router)
@@ -82,7 +93,7 @@ if __name__ == "__main__":
         try:
             window = webview.create_window("OpenWebTTS", url,
             width=1280, height=720, resizable=True, text_select=True, fullscreen=False)
-            window.icon = f"{config.DATA_DIR}/maskable_icon_x128.png"
+            window.icon = config.ICON_PATH
 
             webview.start(debug=server_debug, private_mode=False)
         finally:
