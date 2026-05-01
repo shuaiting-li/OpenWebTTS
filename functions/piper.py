@@ -1,19 +1,12 @@
-import subprocess
+import wave
+from piper import PiperVoice
 from functions.audio import normalize_audio
-from config import DEVICE, binary_path
+from config import DEVICE
+
 
 def piper_process_audio(voice, lang, text, output):
+    piper_voice = PiperVoice.load(voice, use_cuda=(DEVICE == 'cuda'))
+    with wave.open(output, "wb") as wav_file:
+        piper_voice.synthesize_wav(text, wav_file)
 
-    command = [
-        binary_path("piper"),
-        "--model", voice,
-        "--output_file", output
-    ]
-
-    if DEVICE == 'cuda':
-        command.append('--cuda')
-
-    subprocess.run(command, input=text, text=True, check=True, encoding='utf-8')
-
-    # Normalize the audio
     normalize_audio(output)
